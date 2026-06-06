@@ -1,21 +1,86 @@
-import sqlite3 from "sqlite3";
+import BetterSqlite3 from "better-sqlite3";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const dbPath = path.join(__dirname, "../database/finpilot.db");
+const databaseDir = path.join(__dirname, "../database");
+const dbPath = path.join(databaseDir, "finpilot.db");
 
-sqlite3.verbose();
+if (!fs.existsSync(databaseDir)) {
+  fs.mkdirSync(databaseDir, { recursive: true });
+}
 
-export const db = new sqlite3.Database(dbPath, (error) => {
-  if (error) {
-    console.error("Database connection failed:", error.message);
-  } else {
-    console.log("SQLite database connected successfully");
+const sqlite = new BetterSqlite3(dbPath);
+
+console.log("SQLite database connected successfully");
+
+export const db = {
+  run(query, params = [], callback) {
+    try {
+      const result = sqlite.prepare(query).run(params);
+
+      if (typeof callback === "function") {
+        callback.call({ lastID: result.lastInsertRowid, changes: result.changes }, null);
+      }
+
+      return result;
+    } catch (error) {
+      if (typeof callback === "function") {
+        callback(error);
+        return;
+      }
+
+      throw error;
+    }
+  },
+
+  get(query, params = [], callback) {
+    try {
+      const row = sqlite.prepare(query).get(params);
+
+      if (typeof callback === "function") {
+        callback(null, row);
+      }
+
+      return row;
+    } catch (error) {
+      if (typeof callback === "function") {
+        callback(error);
+        return;
+      }
+
+      throw error;
+    }
+  },
+
+  all(query, params = [], callback) {
+    try {
+      const rows = sqlite.prepare(query).all(params);
+
+      if (typeof callback === "function") {
+        callback(null, rows);
+      }
+
+      return rows;
+    } catch (error) {
+      if (typeof callback === "function") {
+        callback(error);
+        return;
+      }
+
+      throw error;
+    }
+  },
+
+  serialize(callback) {
+    if (typeof callback === "function") {
+      callback();
+    }
   }
-});
+};
 
 export function initDatabase() {
   db.serialize(() => {

@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "bcryptjs": "latest",
+    "better-sqlite3": "^12.10.0",
     "cors": "latest",
     "csv-parser": "^3.2.1",
     "dotenv": "latest",
@@ -20,12 +21,9 @@
     "jsonwebtoken": "latest",
     "multer": "^2.1.1",
     "pdf-parse": "^1.1.1",
-    "sqlite3": "latest",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "nodemon": "latest"
   }
-
-  
 }
