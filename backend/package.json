@@ -1,0 +1,26 @@
+{
+  "name": "finpilot-ai-backend",
+  "version": "1.0.0",
+  "description": "Backend API for FinPilot AI",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "dev": "nodemon server.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "latest",
+    "cors": "latest",
+    "csv-parser": "^3.2.1",
+    "dotenv": "latest",
+    "express": "latest",
+    "jsonwebtoken": "latest",
+    "multer": "^2.1.1",
+    "pdf-parse": "^1.1.1",
+    "sqlite3": "latest",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "nodemon": "latest"
+  }
+}
