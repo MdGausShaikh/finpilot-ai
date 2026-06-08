@@ -1,8 +1,12 @@
 import { useEffect, useState } from "react";
-import { fetchFinancialReport } from "../../services/financeApi";
+import {
+  fetchExpenseReports,
+  fetchFinancialReport
+} from "../../services/financeApi";
 
 function Reports() {
   const [report, setReport] = useState(null);
+  const [expenseReport, setExpenseReport] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -11,8 +15,13 @@ function Reports() {
       setLoading(true);
       setError("");
 
-      const data = await fetchFinancialReport();
-      setReport(data);
+      const [financialData, expenseData] = await Promise.all([
+        fetchFinancialReport(),
+        fetchExpenseReports()
+      ]);
+
+      setReport(financialData);
+      setExpenseReport(expenseData);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -27,7 +36,7 @@ function Reports() {
   if (loading) {
     return (
       <div className="module-page">
-        <p className="muted">Loading financial report...</p>
+        <p className="muted">Loading financial reports...</p>
       </div>
     );
   }
@@ -40,7 +49,7 @@ function Reports() {
     );
   }
 
-  if (!report) {
+  if (!report || !expenseReport) {
     return (
       <div className="module-page">
         <p className="muted">No report data available.</p>
@@ -55,12 +64,12 @@ function Reports() {
           <span className="eyebrow">Financial Intelligence Reports</span>
           <h1>Reports Center</h1>
           <p>
-            Complete financial overview generated from income, expenses, goals,
-            family finance and investments.
+            Complete financial overview with daily expenses, monthly expenses,
+            category analytics, goals, family finance and investments.
           </p>
         </div>
 
-        <div className="hero-pill">Database Connected</div>
+        <div className="hero-pill">Daily / Monthly Reports</div>
       </div>
 
       <section className="summary-grid four">
@@ -77,6 +86,25 @@ function Reports() {
         </div>
 
         <div className="summary-card">
+          <p>This Month Expense</p>
+          <h2>
+            ₹
+            {Number(
+              expenseReport.overview.currentMonthExpense || 0
+            ).toLocaleString("en-IN")}
+          </h2>
+          <span className="down">Current month spending</span>
+        </div>
+
+        <div className="summary-card">
+          <p>Expense Transactions</p>
+          <h2>{expenseReport.overview.totalTransactions}</h2>
+          <span className="muted">Total expense records</span>
+        </div>
+      </section>
+
+      <section className="summary-grid four">
+        <div className="summary-card">
           <p>Total Savings</p>
           <h2>₹{report.overview.savings.toLocaleString("en-IN")}</h2>
           <span className="up">{report.overview.savingsRate}% savings rate</span>
@@ -87,6 +115,167 @@ function Reports() {
           <h2>{report.overview.financialHealthScore}/100</h2>
           <span className="up">Financial health</span>
         </div>
+
+        <div className="summary-card">
+          <p>Top Expense</p>
+          <h2>
+            ₹
+            {Number(
+              expenseReport.overview.topExpense?.amount || 0
+            ).toLocaleString("en-IN")}
+          </h2>
+          <span className="down">
+            {expenseReport.overview.topExpense?.title || "No expense found"}
+          </span>
+        </div>
+
+        <div className="summary-card">
+          <p>Top Category</p>
+          <h2>
+            {expenseReport.categoryReport?.[0]?.category || "N/A"}
+          </h2>
+          <span className="muted">
+            ₹
+            {Number(
+              expenseReport.categoryReport?.[0]?.totalExpense || 0
+            ).toLocaleString("en-IN")}
+          </span>
+        </div>
+      </section>
+
+      <section className="module-grid">
+        <div className="card table-card">
+          <div className="card-header">
+            <div>
+              <h3>Daily Expense Report</h3>
+              <p className="muted">
+                Date-wise expense summary generated from live expense records.
+              </p>
+            </div>
+          </div>
+
+          <table className="premium-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Total Expense</th>
+                <th>Transactions</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {expenseReport.dailyReport.length === 0 ? (
+                <tr>
+                  <td colSpan="4">No daily expense data available.</td>
+                </tr>
+              ) : (
+                expenseReport.dailyReport.map((item) => (
+                  <tr key={item.date}>
+                    <td>{item.date}</td>
+                    <td className="down">
+                      ₹{Number(item.totalExpense || 0).toLocaleString("en-IN")}
+                    </td>
+                    <td>{item.transactionCount}</td>
+                    <td>
+                      <span className="tag success-tag">Generated</span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="card table-card">
+          <div className="card-header">
+            <div>
+              <h3>Monthly Expense Report</h3>
+              <p className="muted">
+                Month-wise spending summary for long-term expense tracking.
+              </p>
+            </div>
+          </div>
+
+          <table className="premium-table">
+            <thead>
+              <tr>
+                <th>Month</th>
+                <th>Total Expense</th>
+                <th>Transactions</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {expenseReport.monthlyReport.length === 0 ? (
+                <tr>
+                  <td colSpan="4">No monthly expense data available.</td>
+                </tr>
+              ) : (
+                expenseReport.monthlyReport.map((item) => (
+                  <tr key={item.month}>
+                    <td>{item.month}</td>
+                    <td className="down">
+                      ₹{Number(item.totalExpense || 0).toLocaleString("en-IN")}
+                    </td>
+                    <td>{item.transactionCount}</td>
+                    <td>
+                      <span className="tag success-tag">Generated</span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="card table-card">
+        <div className="card-header">
+          <div>
+            <h3>Category Expense Report</h3>
+            <p className="muted">
+              Category-wise expense breakdown for budget planning.
+            </p>
+          </div>
+        </div>
+
+        <table className="premium-table">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Total Expense</th>
+              <th>Transactions</th>
+              <th>Budget Signal</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {expenseReport.categoryReport.length === 0 ? (
+              <tr>
+                <td colSpan="4">No category report data available.</td>
+              </tr>
+            ) : (
+              expenseReport.categoryReport.map((item) => (
+                <tr key={item.category}>
+                  <td>{item.category || "Other"}</td>
+                  <td className="down">
+                    ₹{Number(item.totalExpense || 0).toLocaleString("en-IN")}
+                  </td>
+                  <td>{item.transactionCount}</td>
+                  <td>
+                    <span className="tag">
+                      {Number(item.totalExpense || 0) > 10000
+                        ? "Review"
+                        : "Normal"}
+                    </span>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </section>
 
       <section className="module-grid">
@@ -151,7 +340,10 @@ function Reports() {
 
             <div>
               <p>Profit</p>
-              <b>₹{report.investments.investmentProfit.toLocaleString("en-IN")}</b>
+              <b>
+                ₹
+                {report.investments.investmentProfit.toLocaleString("en-IN")}
+              </b>
             </div>
 
             <div>
@@ -195,10 +387,13 @@ function Reports() {
         </div>
 
         <div className="card ai-insight-card">
-          <span className="eyebrow">AI Report Summary</span>
-          <h3>{report.aiSummary.title}</h3>
+          <span className="eyebrow">AI Expense Insight</span>
+          <h3>Spending Intelligence</h3>
 
-          <p>{report.aiSummary.message}</p>
+          <p>
+            {expenseReport.aiInsight ||
+              "Your expense report helps identify daily spending patterns and monthly expense trends."}
+          </p>
 
           <div className="insight-box">
             <p>Report Status</p>
@@ -212,7 +407,7 @@ function Reports() {
           <div>
             <h3>Report Actions</h3>
             <p className="muted">
-              Export options will be connected in the next phase.
+              PDF and CSV export can be added in the next upgrade.
             </p>
           </div>
 
@@ -234,16 +429,25 @@ function Reports() {
 
           <tbody>
             <tr>
-              <td>Income Report</td>
+              <td>Daily Expense Report</td>
               <td>
                 <span className="tag success-tag">Generated</span>
               </td>
-              <td>Income Database</td>
+              <td>Expense Database</td>
               <td>Yes</td>
             </tr>
 
             <tr>
-              <td>Expense Report</td>
+              <td>Monthly Expense Report</td>
+              <td>
+                <span className="tag success-tag">Generated</span>
+              </td>
+              <td>Expense Database</td>
+              <td>Yes</td>
+            </tr>
+
+            <tr>
+              <td>Category Expense Report</td>
               <td>
                 <span className="tag success-tag">Generated</span>
               </td>

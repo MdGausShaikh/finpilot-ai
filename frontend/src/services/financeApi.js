@@ -360,3 +360,21 @@ export async function fetchAiCfoAnalysis() {
 
   return data;
 }
+
+/* =========================
+   EXPENSE REPORT API
+========================= */
+
+export async function fetchExpenseReports() {
+  const response = await fetch(`${API_BASE_URL}/expense-reports`, {
+    headers: getHeaders()
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to fetch expense reports");
+  }
+
+  return data;
+}

@@ -13,6 +13,7 @@ import reportRoutes from "./routes/reportRoutes.js";
 import statementRoutes from "./routes/statementRoutes.js";
 import netWorthRoutes from "./routes/netWorthRoutes.js";
 import aiCfoRoutes from "./routes/aiCfoRoutes.js";
+import expenseReportRoutes from "./routes/expenseReportRoutes.js";
 
 dotenv.config();
 
@@ -40,6 +41,7 @@ app.use("/api/reports", reportRoutes);
 app.use("/api/statements", statementRoutes);
 app.use("/api/networth", netWorthRoutes);
 app.use("/api/ai-cfo", aiCfoRoutes);
+app.use("/api/expense-reports", expenseReportRoutes);
 
 const PORT = process.env.PORT || 5000;
 
