@@ -18,6 +18,57 @@ function runGet(query, params = []) {
   });
 }
 
+function formatMonth(month = "") {
+  if (!month) return "Unknown";
+
+  const [year, monthNumber] = month.split("-");
+  const date = new Date(Number(year), Number(monthNumber) - 1, 1);
+
+  return date.toLocaleString("en-IN", {
+    month: "short",
+    year: "numeric"
+  });
+}
+
+function formatDateLabel(date = "") {
+  if (!date) return "Unknown";
+
+  const parsedDate = new Date(date);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return date;
+  }
+
+  return parsedDate.toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short"
+  });
+}
+
+function buildInsight({ totalExpense, currentMonthExpense, topExpense, topCategory }) {
+  if (!totalExpense || totalExpense === 0) {
+    return "No expense data is available yet. Add expenses or upload a statement to generate spending insights.";
+  }
+
+  const topCategoryText = topCategory
+    ? `${topCategory.category} is your highest spending category with ₹${Number(
+        topCategory.totalExpense || 0
+      ).toLocaleString("en-IN")}.`
+    : "Category-wise spending is not available yet.";
+
+  const topExpenseText = topExpense
+    ? `Your highest single expense is ${topExpense.title} worth ₹${Number(
+        topExpense.amount || 0
+      ).toLocaleString("en-IN")}.`
+    : "No top expense found.";
+
+  return `${topCategoryText} ${topExpenseText} Your current month expense is ₹${Number(
+    currentMonthExpense || 0
+  ).toLocaleString(
+    "en-IN"
+  )}. Review high-spending categories weekly to improve your savings rate.`;
+}
+
 export async function getExpenseReports(req, res) {
   const userId = req.user.id;
 
@@ -53,12 +104,12 @@ export async function getExpenseReports(req, res) {
     const categoryReport = await runAll(
       `
       SELECT 
-        category,
+        COALESCE(category, 'Other') AS category,
         COALESCE(SUM(amount), 0) AS totalExpense,
         COUNT(*) AS transactionCount
       FROM expenses
       WHERE user_id = ?
-      GROUP BY category
+      GROUP BY COALESCE(category, 'Other')
       ORDER BY totalExpense DESC
       `,
       [userId]
@@ -109,18 +160,71 @@ export async function getExpenseReports(req, res) {
       [userId, currentMonth]
     );
 
+    const highestExpenseDay = dailyReport.reduce(
+      (highest, item) =>
+        Number(item.totalExpense || 0) > Number(highest.totalExpense || 0)
+          ? item
+          : highest,
+      { totalExpense: 0 }
+    );
+
+    const topCategory = categoryReport[0] || null;
+
+    const dailyTrend = [...dailyReport]
+      .reverse()
+      .map((item) => ({
+        date: item.date,
+        label: formatDateLabel(item.date),
+        totalExpense: Number(item.totalExpense || 0),
+        transactionCount: Number(item.transactionCount || 0)
+      }));
+
+    const monthlyTrend = [...monthlyReport]
+      .reverse()
+      .map((item) => ({
+        month: item.month,
+        label: formatMonth(item.month),
+        totalExpense: Number(item.totalExpense || 0),
+        transactionCount: Number(item.transactionCount || 0)
+      }));
+
+    const categoryChart = categoryReport.map((item) => ({
+      category: item.category || "Other",
+      totalExpense: Number(item.totalExpense || 0),
+      transactionCount: Number(item.transactionCount || 0)
+    }));
+
+    const topFiveCategories = categoryChart.slice(0, 5);
+
+    const totalExpense = Number(totalExpenseRow.totalExpense || 0);
+    const currentMonthExpense = Number(
+      currentMonthRow.currentMonthExpense || 0
+    );
+
     return res.json({
       overview: {
-        totalExpense: Number(totalExpenseRow.totalExpense || 0),
+        totalExpense,
         totalTransactions: Number(totalTransactionsRow.totalTransactions || 0),
-        currentMonthExpense: Number(currentMonthRow.currentMonthExpense || 0),
-        topExpense: topExpenseRow || null
+        currentMonthExpense,
+        topExpense: topExpenseRow || null,
+        highestExpenseDay,
+        topCategory
       },
       dailyReport,
       monthlyReport,
       categoryReport,
-      aiInsight:
-        "Your expense reports are generated from real expense records. Use daily and monthly trends to control spending and improve savings."
+      charts: {
+        dailyTrend,
+        monthlyTrend,
+        categoryChart,
+        topFiveCategories
+      },
+      aiInsight: buildInsight({
+        totalExpense,
+        currentMonthExpense,
+        topExpense: topExpenseRow,
+        topCategory
+      })
     });
   } catch (error) {
     return res.status(500).json({
