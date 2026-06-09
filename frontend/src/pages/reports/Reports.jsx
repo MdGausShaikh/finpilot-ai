@@ -3,6 +3,27 @@ import {
   fetchExpenseReports,
   fetchFinancialReport
 } from "../../services/financeApi";
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  AreaChart,
+  Area,
+  XAxis,
+  Tooltip,
+  BarChart,
+  Bar
+} from "recharts";
+
+const CHART_COLORS = [
+  "#7c3aed",
+  "#14b8a6",
+  "#fb7185",
+  "#f59e0b",
+  "#60a5fa",
+  "#94a3b8"
+];
 
 function Reports() {
   const [report, setReport] = useState(null);
@@ -57,6 +78,10 @@ function Reports() {
     );
   }
 
+  const categoryChart = expenseReport.charts?.categoryChart || [];
+  const monthlyTrend = expenseReport.charts?.monthlyTrend || [];
+  const dailyTrend = expenseReport.charts?.dailyTrend || [];
+
   return (
     <div className="module-page">
       <div className="module-hero">
@@ -69,7 +94,7 @@ function Reports() {
           </p>
         </div>
 
-        <div className="hero-pill">Daily / Monthly Reports</div>
+        <div className="hero-pill">Analytics Ready</div>
       </div>
 
       <section className="summary-grid four">
@@ -131,16 +156,98 @@ function Reports() {
 
         <div className="summary-card">
           <p>Top Category</p>
-          <h2>
-            {expenseReport.categoryReport?.[0]?.category || "N/A"}
-          </h2>
+          <h2>{expenseReport.overview.topCategory?.category || "N/A"}</h2>
           <span className="muted">
             ₹
             {Number(
-              expenseReport.categoryReport?.[0]?.totalExpense || 0
+              expenseReport.overview.topCategory?.totalExpense || 0
             ).toLocaleString("en-IN")}
           </span>
         </div>
+      </section>
+
+      <section className="module-grid">
+        <div className="card">
+          <div className="card-header">
+            <div>
+              <h3>Expense Category Breakdown</h3>
+              <p className="muted">Category-wise spending distribution.</p>
+            </div>
+          </div>
+
+          {categoryChart.length === 0 ? (
+            <p className="muted">No category chart data available.</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={categoryChart}
+                  dataKey="totalExpense"
+                  nameKey="category"
+                  outerRadius={100}
+                >
+                  {categoryChart.map((_, index) => (
+                    <Cell
+                      key={index}
+                      fill={CHART_COLORS[index % CHART_COLORS.length]}
+                    />
+                  ))}
+                </Pie>
+
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        <div className="card">
+          <div className="card-header">
+            <div>
+              <h3>Monthly Expense Trend</h3>
+              <p className="muted">Month-wise spending movement.</p>
+            </div>
+          </div>
+
+          {monthlyTrend.length === 0 ? (
+            <p className="muted">No monthly trend data available.</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={monthlyTrend}>
+                <XAxis dataKey="label" />
+                <Tooltip />
+
+                <Area
+                  type="monotone"
+                  dataKey="totalExpense"
+                  stroke="#7c3aed"
+                  fill="#7c3aed33"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </section>
+
+      <section className="card">
+        <div className="card-header">
+          <div>
+            <h3>Daily Expense Trend</h3>
+            <p className="muted">Daily expense movement based on your records.</p>
+          </div>
+        </div>
+
+        {dailyTrend.length === 0 ? (
+          <p className="muted">No daily trend data available.</p>
+        ) : (
+          <ResponsiveContainer width="100%" height={350}>
+            <BarChart data={dailyTrend}>
+              <XAxis dataKey="label" />
+              <Tooltip />
+
+              <Bar dataKey="totalExpense" fill="#14b8a6" />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </section>
 
       <section className="module-grid">
